@@ -11,8 +11,7 @@ output := precision=0.0001
 ma_%.geojson: shapefiles/%2012_poly.shp
 	npx mapshaper -i $< \
 		-each "district = this.properties.REP_DIST || this.properties.SEN_DIST" \
-		-each "legislator=URL" \
-		-filter-fields district,legislator \
+		-filter-fields district \
 		-proj wgs84 \
 		-simplify $(simplify) \
 		-clean \
