@@ -22,5 +22,5 @@ make -B
 
 ## Data sources
 
-- <https://docs.digital.mass.gov/dataset/massgis-data-massachusetts-house-legislative-districts>
-- <https://docs.digital.mass.gov/dataset/massgis-data-massachusetts-senate-legislative-districts>
+- [MassGIS Data: Massachusetts House Legislative Districts](https://docs.digital.mass.gov/dataset/massgis-data-massachusetts-house-legislative-districts)
+- [MassGIS Data: Massachusetts Senate Legislative Districts](https://docs.digital.mass.gov/dataset/massgis-data-massachusetts-senate-legislative-districts)
