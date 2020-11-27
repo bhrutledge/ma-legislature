@@ -1,10 +1,11 @@
 .PHONY: all
-all: ma_house.geojson
+all: ma_house.geojson ma_senate.geojson
 
 ma_%.geojson: shapefiles/%2012_poly.shp
 	npx mapshaper $< \
-		-filter-fields DIST_CODE,REP_DIST,URL \
-		-rename-fields district=REP_DIST,code=DIST_CODE,legislator=URL \
+		-each "district = this.properties.REP_DIST || this.properties.SEN_DIST" \
+		-each "legislator=URL" \
+		-filter-fields district,legislator \
 		-proj wgs84 \
 		-simplify 5% \
 		-info \
