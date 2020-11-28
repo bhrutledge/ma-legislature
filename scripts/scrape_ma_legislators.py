@@ -18,8 +18,9 @@ from tqdm import tqdm
 
 BASE_URL = "https://malegislature.gov"
 FILE_DIR = pathlib.Path(__file__).parent.resolve()
+CACHE_DIR = FILE_DIR.parent / "cache"
 
-requests_cache.install_cache(str(FILE_DIR / "ma_legislators_cache"))
+requests_cache.install_cache(str(CACHE_DIR / "ma_legislators_requests"))
 
 debug = functools.partial(print, file=sys.stderr)
 

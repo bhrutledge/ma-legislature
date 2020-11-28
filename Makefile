@@ -8,7 +8,7 @@ all: dist/ma_house.geojson dist/ma_senate.geojson
 simplify := interval=50m
 output := precision=0.0001
 
-dist/ma_%.geojson: shapefiles/%2012_poly.shp dist/ma_legislators.json
+dist/ma_%.geojson: cache/gis/%2012_poly.shp dist/ma_legislators.json
 	npx mapshaper -i $< \
 		-each "district = this.properties.REP_DIST || this.properties.SEN_DIST" \
 		-filter-fields district \
@@ -19,21 +19,24 @@ dist/ma_%.geojson: shapefiles/%2012_poly.shp dist/ma_legislators.json
 		-o $@ $(output)
 	@ls -lh $@
 
-.PRECIOUS: shapefiles/%_poly.shp
-shapefiles/%_poly.shp: shapefiles/%.zip
-	unzip -d shapefiles -o -DD -L $<
+.PRECIOUS: cache/gis/%_poly.shp
+cache/gis/%_poly.shp: cache/gis/%.zip
+	unzip -d $(dir $@) -o -DD -L $<
 
-.PRECIOUS: shapefiles/%.zip
-shapefiles/%.zip:
+.PRECIOUS: cache/gis/%.zip
+cache/gis/%.zip:
 	curl --create-dirs --output $@ \
-		http://download.massgis.digital.mass.gov/shapefiles/state/$(notdir $@)
+		http://download.massgis.digital.mass.gov/cache/state/$(notdir $@)
 
 # TODO: Generate CSV as a convenience
 dist/ma_legislators.json:
+	mkdir -p dist cache
 	venv/bin/python scripts/scrape_ma_legislators.py > $@
 	ls -lh $@
 	head -c 1024 $@
 
+# TODO: Add distinct clean-dist and clean-cache, via clean-%, but see:
+# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
 .PHONY: clean
 clean:
-	rm -rf dist shapefiles
+	rm -rf dist cache
