@@ -1,2 +1,5 @@
 node_modules
 shapefiles
+*.sqlite
+venv
+__pycache__

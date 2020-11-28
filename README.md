@@ -8,10 +8,12 @@ Feedback welcome on the [issue tracker](https://github.com/bhrutledge/ma-legisla
 
 ## Build instructions
 
-Install the NPM dependencies (i.e. [mapshaper](https://github.com/mbloch/mapshaper)):
+Install the project's dependencies:
 
 ```
 npm install
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
 ```
 
 Then, to re-download the data and rebuild the output, run:
