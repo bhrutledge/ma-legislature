@@ -1,5 +1,5 @@
 .PHONY: all
-all: ma_house.geojson ma_senate.geojson
+all: dist/ma_house.geojson dist/ma_senate.geojson
 
 # Attempting to balance file size with accuracy, mostly emperically
 # 50m ~= 1/2 a city block, and 4 decimals of precision == 11.1m
@@ -8,13 +8,14 @@ all: ma_house.geojson ma_senate.geojson
 simplify := interval=50m
 output := precision=0.0001
 
-ma_%.geojson: shapefiles/%2012_poly.shp
+dist/ma_%.geojson: shapefiles/%2012_poly.shp dist/ma_legislators.json
 	npx mapshaper -i $< \
 		-each "district = this.properties.REP_DIST || this.properties.SEN_DIST" \
 		-filter-fields district \
 		-proj wgs84 \
 		-simplify $(simplify) \
 		-clean \
+		-join $(word 2, $^) keys=district,district \
 		-o $@ $(output)
 	@ls -lh $@
 
@@ -27,6 +28,12 @@ shapefiles/%.zip:
 	curl --create-dirs --output $@ \
 		http://download.massgis.digital.mass.gov/shapefiles/state/$(notdir $@)
 
+# TODO: Extract data generation from ma-bill-sponsors to this repo
+# TODO: Generate CSV as a convenience
+dist/ma_legislators.json:
+	curl --create-dirs --output $@ \
+		https://raw.githubusercontent.com/bhrutledge/ma-bill-sponsors/main/static/$(notdir $@)
+
 .PHONY: clean
 clean:
-	rm -rf *.geojson shapefiles
+	rm -rf dist shapefiles
