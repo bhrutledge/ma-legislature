@@ -1,5 +1,6 @@
+*~
 node_modules
-shapefiles
-*.sqlite
 venv
 __pycache__
+*.sqlite
+shapefiles

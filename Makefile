@@ -28,11 +28,11 @@ shapefiles/%.zip:
 	curl --create-dirs --output $@ \
 		http://download.massgis.digital.mass.gov/shapefiles/state/$(notdir $@)
 
-# TODO: Extract data generation from ma-bill-sponsors to this repo
 # TODO: Generate CSV as a convenience
 dist/ma_legislators.json:
-	curl --create-dirs --output $@ \
-		https://raw.githubusercontent.com/bhrutledge/ma-bill-sponsors/main/static/$(notdir $@)
+	venv/bin/python scripts/scrape_ma_legislators.py > $@
+	ls -lh $@
+	head -c 1024 $@
 
 .PHONY: clean
 clean:

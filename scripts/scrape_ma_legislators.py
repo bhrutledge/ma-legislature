@@ -1,19 +1,27 @@
+"""
+Scrape legislator names and contact info from https://malegislature.gov/Legislators.
+
+TODO: Replace this with a Scrapy project.
+"""
+import functools
 import json
 import pathlib
-import subprocess
+import sys
+import warnings
 from collections import OrderedDict
 
 import requests
 import requests_cache
+import urllib3
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-requests_cache.install_cache()
-
-
 BASE_URL = "https://malegislature.gov"
-ROOT_PATH = pathlib.Path(__file__).parent
-DIST_PATH = ROOT_PATH / "dist"
+FILE_DIR = pathlib.Path(__file__).parent.resolve()
+
+requests_cache.install_cache(str(FILE_DIR / "ma_legislators_cache"))
+
+debug = functools.partial(print, file=sys.stderr)
 
 
 def select_string(soup, selector):
@@ -24,11 +32,15 @@ def select_string(soup, selector):
 
 
 def get_soup(url):
-    # print(url)
+    # debug(url)
     # HACK: Work around SSLError "unable to get local issuer certificate"
-    response = requests.get(url, verify=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+        response = requests.get(url, verify=False)
+
     response.raise_for_status()
-    # print(f'Status: {response.status_code}, Cached: {response.from_cache}')
+    # debug(f"Status: {response.status_code}, Cached: {response.from_cache}")
+
     return BeautifulSoup(response.text, "lxml")
 
 
@@ -51,7 +63,7 @@ def parse_chamber(soup):
         try:
             profile = parse_leg_profile(profile_soup)
         except AttributeError as exc:
-            print(f"Error parsing {row['url']}: {exc}")
+            debug(f"Error parsing {row['url']}: {exc}")
             profile = OrderedDict()
 
         profile.update(row)
@@ -68,11 +80,11 @@ def parse_leg_row(soup):
             ("first_name", select_string(soup, "td:nth-of-type(3)")),
             ("last_name", select_string(soup, "td:nth-of-type(4)")),
             ("party", select_string(soup, "td:nth-of-type(6)")),
-            ("photo", BASE_URL + soup.select_one(".thumb img")["src"]),
             ("url", BASE_URL + soup.select_one("td:nth-of-type(3) a")["href"]),
             ("email", select_string(soup, "td:nth-of-type(9) a")),
             ("phone", select_string(soup, "td:nth-of-type(8)")),
             ("room", select_string(soup, "td:nth-of-type(7)")),
+            ("photo", BASE_URL + soup.select_one(".thumb img")["src"]),
         ]
     )
 
@@ -90,27 +102,19 @@ def parse_leg_profile(soup):
 
 def get_chamber(chamber_name):
     chamber_url = f"{BASE_URL}/Legislators/Members/{chamber_name.title()}"
+    debug(chamber_url)
     chamber_soup = get_soup(chamber_url)
     chamber = list(parse_chamber(chamber_soup))
 
-    print(json.dumps([chamber[0], "...", chamber[-1]], indent=2))
+    debug(json.dumps([chamber[0], "...", chamber[-1]], indent=2))
 
     return chamber
-
-
-def save_json(obj, filename):
-    json_path = DIST_PATH / filename
-    with open(json_path, "w") as json_file:
-        json.dump(obj, json_file)
-
-    subprocess.run(["ls", "-lh", json_path])
-    subprocess.run(["head", "-c", "1024", json_path])
 
 
 def main():
     representatives = get_chamber("house")
     senators = get_chamber("senate")
-    save_json(representatives + senators, "ma_legislators.json")
+    json.dump(representatives + senators, sys.stdout)
 
 
 if __name__ == "__main__":
