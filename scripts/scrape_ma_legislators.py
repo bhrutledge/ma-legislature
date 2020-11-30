@@ -49,6 +49,7 @@ CLEAN_URLS = {
     f"{BASE_URL}/Legislators/District/4thHampden": {
         "chamber": "House",
         "district": "4th Hampden",
+        "full_name": "Vacant",
     }
 }
 
