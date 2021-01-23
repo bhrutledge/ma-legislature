@@ -1,0 +1,361 @@
+<html>
+
+<head>
+  <title>Commitments to the Act On Mass Transparency Campaign</title>
+  <base target="_blank">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@2.9.9/dist/leaflet-search.min.css" />
+
+  <style>
+    :root {
+      --join-color: rgba(0, 0, 0, 0.2);
+      --join-color--active: rgba(0, 0, 0, 0.4);
+      --committed-color: rgba(90, 186, 161, 0.6);
+      --committed-color--active: rgba(90, 186, 161, 0.9);
+      --vote-Y-color: rgba(250, 162, 0, 0.5);
+      --vote-Y-color--active: rgba(250, 162, 0, 0.9);
+      --vote-N-color: rgba(128, 128, 128, 1.0);
+    }
+
+    body {
+      margin: 0;
+      /* Matching .leaflet-container */
+      background: #ddd;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    #map:not(.leaflet-container)::after {
+      content: '…loading map…';
+      display: block;
+      padding: 1rem;
+      text-align: center;
+      /* Matching .leaflet-container */
+      font: oblique 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+    }
+
+    a {
+      color: #00529A !important;
+    }
+
+    .legend {
+      background: white;
+      border: 2px solid rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      padding: 0 0.5rem;
+    }
+
+    .legend__item {
+      display: flex;
+      align-items: center;
+      margin: 0.5rem 0;
+    }
+
+    .legend__item::before {
+      background: var(--join-color);
+      border-radius: 2px;
+      content: '';
+      display: block;
+      margin-right: 0.5rem;
+      height: 1rem;
+      width: 1rem;
+    }
+
+    .legend__item--committed::before {
+      background: var(--committed-color);
+    }
+
+    .legend__item--voted::before {
+      background: var(--vote-Y-color);
+    }
+
+    .district {
+      fill: var(--join-color);
+      fill-opacity: 1;
+      stroke: var(--join-color);
+      stroke-width: 1;
+    }
+
+    .district:hover {
+      stroke-width: 4;
+    }
+
+    .district--active {
+      fill: var(--join-color--active);
+    }
+
+    .district--committed {
+      fill: var(--committed-color);
+    }
+
+    .district--committed.district--active {
+      fill: var(--committed-color--active);
+    }
+
+    .district--voted {
+      fill: var(--vote-Y-color);
+    }
+
+    .district--voted.district--active {
+      fill: var(--vote-Y-color--active);
+    }
+
+    .leaflet-control-search .search-input {
+      outline: none;
+      width: 15rem;
+    }
+
+    .leaflet-control-search .search-tooltip {
+      margin: 2px 0 0;
+      width: 100%;
+      border-radius: 4px;
+    }
+
+    .leaflet-control-search .search-tip {
+      margin: 0;
+      border-radius: 0;
+    }
+
+    table {
+      border-collapse: collapse;
+      border-spacing: 0;
+      font: inherit;
+      width: 100%;
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: baseline;
+      white-space: nowrap;
+    }
+
+    .commitment {
+      color: var(--committed-color--active);
+      font-weight: bold;
+      padding-right: 0.25rem;
+    }
+
+    .vote {
+      color: var(--vote-N-color);
+      font-weight: bold;
+      padding-right: 0.25rem;
+    }
+
+    .vote--Y {
+      color: var(--vote-Y-color--active);
+    }
+
+    .vote-details {
+      color: var(--vote-N-color);
+      font-size: 0.75rem;
+      font-style: oblique;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+    crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-providers@1.11.0/leaflet-providers.js"></script>
+  <script src="https://unpkg.com/leaflet-search@2.9.9/dist/leaflet-search.min.js"></script>
+  <script src="https://unpkg.com/papaparse@5.3.0/papaparse.min.js"></script>
+
+  <script>
+    /* global L, Papa */
+
+    /* Load the supporter data and house district boundaries */
+
+    Promise.all([
+      fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4l7bRcBIgwsEPGM_s9zF9csIeTgE2No_4tA6MuDCBUbfmWY_e9mAfzPpCJTsIK_hUzOyJ8CmdGMsX/pub?gid=641305740&single=true&output=csv')
+        .then((response) => response.text())
+        .then((csv) => {
+          const parsed = Papa.parse(csv, { header: true, dynamicTyping: true });
+          return Promise.resolve(parsed.data);
+        }),
+      fetch('https://raw.githubusercontent.com/bhrutledge/ma-legislature/main/dist/ma_house.geojson')
+        .then((response) => response.json()),
+    ])
+      .then(([supporters, houseFeatures]) => {
+        const supportersByDistrict = supporters.reduce((acc, cur) => {
+          acc[cur.district] = cur;
+          return acc;
+        }, {});
+
+        function repProperties(feature) {
+          const supporter = supportersByDistrict[feature.properties.district];
+          return supporter;
+          /* TODO: Join with feature properties when contact info for "elect" reps is added
+          // Supporter info from Sheet may be incomplete, so only prefer it to
+          // replace outgoing incumbents
+          return supporter && supporter.elect
+            ? { ...feature.properties, ...supporter } : { ...supporter, ...feature.properties };
+          */
+        }
+
+        /* Templates for map elements */
+
+        const districtLegend = () => /* html */`
+          <div class="legend__item legend__item--committed">
+            Committed to Vote
+          </div>
+          <div class="legend__item legend__item--voted">
+            Voted "Yes" in 2019
+          </div>
+          <div class="legend__item legend__item--join">
+            Join District Team
+          </div>
+        `;
+
+        const districtStyle = (rep) => ({
+          // Expecting "committed", "voted", or "join"
+          className: `district district--${rep.color}`,
+        });
+
+        const commitmentIcon = (commitment) => (commitment ? '✓' : '');
+
+        const repCommitments = (rep) => (rep.commitments ? /* html */`
+          <p>
+            <table>
+              <tr><th colspan="3">Committed to vote for:</strong></tr>
+              <tr>
+                <td class="commitment">${commitmentIcon(rep.committee_votes)}</td>
+                <td>1.</td>
+                <td>Committee votes made public</td>
+              </tr>
+              <tr>
+                <td class="commitment">${commitmentIcon(rep.public_bills)}</td>
+                <td>2.</td>
+                <td>Bills made public for 72 hours</td>
+              </tr>
+              <tr>
+                <td class="commitment">${commitmentIcon(rep.roll_call)}</td>
+                <td>3.</td>
+                <td>Lower threshold for public roll call</td>
+              </tr>
+            </table>
+          </p>
+        ` : '');
+
+        const voteDetails = (rep) => {
+          const votes = [rep.committee_votes_2019, rep.public_bills_2019];
+          const details = [];
+
+          if (votes.includes('NA')) {
+            details.push('(NA = Not a representative in 2019)');
+          }
+          if (votes.includes('X')) {
+            details.push('(X = Not present for vote)');
+          }
+
+          return details.length ? /* html */`
+            <div class="vote-details">${details.join('<br>')}</div>
+          ` : '';
+        };
+
+        const repVotes = (rep) => /* html */`
+          <p>
+            <table>
+              <tr><th colspan="2">How they voted in 2019:</strong></tr>
+              <tr>
+                <td class="vote vote--${rep.committee_votes_2019}">${rep.committee_votes_2019}</td>
+                <td>Committee votes made public</td>
+              </tr>
+              <tr>
+                <td class="vote vote--${rep.public_bills_2019}">${rep.public_bills_2019}</td>
+                <td>Bills made public for 72 hours</td>
+              </tr>
+              <tr>
+                <td class="vote-details" colspan="2">${voteDetails(rep)}</td>
+              </tr>
+            </table>
+          </p>
+        `;
+
+        const callToAction = (rep) => /* html */`
+          <a href="https://actonmass.org/the-campaign/?your_state_representative=${rep.first_name} ${rep.last_name}#join-your-district-team"
+            target="_parent"
+          >
+            <strong>Join ${rep.commitments ? 'the Campaign' : 'District Team'}</strong>
+          </a>
+        `;
+
+        const districtPopup = (rep) => `
+          <p>
+            <strong>${rep.first_name} ${rep.last_name}</strong>
+            ${rep.url ? `(<a href="${rep.url}">contact</a>)` : ''}
+            <br />${rep.party ? `${rep.party},` : ''}
+            ${rep.district}
+            ${rep.elect ? '(Elect)' : ''}
+          </p>
+
+          ${repCommitments(rep)}
+          ${repVotes(rep)}
+          ${callToAction(rep)}
+        `;
+
+        const onPopup = (e) => {
+          const active = e.type === 'popupopen';
+          e.target.getElement().classList.toggle('district--active', active);
+        };
+
+        /* Build the map */
+
+        const houseLayer = L.geoJson(houseFeatures, {
+          style: (feature) => districtStyle(repProperties(feature)),
+          onEachFeature: (feature, layer) => {
+            const rep = repProperties(feature);
+
+            layer.bindPopup(districtPopup(rep));
+            layer.on('popupopen', onPopup);
+            layer.on('popupclose', onPopup);
+
+            // Enable searching by name or district; inspired by:
+            // https://github.com/stefanocudini/leaflet-search/issues/52#issuecomment-266168224
+            // eslint-disable-next-line no-param-reassign
+            feature.properties.index = `${rep.first_name} ${rep.last_name} - ${rep.district}`;
+          },
+        });
+
+        const searchControl = new L.Control.Search({
+          layer: houseLayer,
+          propertyName: 'index',
+          initial: false,
+          marker: false,
+          textPlaceholder: 'Search reps and districts',
+          moveToLocation(latlng, title, map) {
+            map.fitBounds(latlng.layer.getBounds());
+            latlng.layer.openPopup();
+          },
+        });
+
+        const legendControl = L.control({ position: 'topright' });
+        legendControl.onAdd = () => {
+          const div = L.DomUtil.create('div', 'legend');
+          div.innerHTML = districtLegend();
+          return div;
+        };
+
+        const map = L.map('map')
+          .addLayer(L.tileLayer.provider('CartoDB.Positron'))
+          .addLayer(houseLayer)
+          .addControl(searchControl)
+          .addControl(legendControl)
+          .fitBounds(houseLayer.getBounds());
+
+        // Avoid accidental excessive zoom out
+        map.setMinZoom(map.getZoom());
+      });
+  </script>
+</body>
+
+</html>
