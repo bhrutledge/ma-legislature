@@ -26,7 +26,7 @@ cache/gis/%_poly.shp: cache/gis/%.zip
 .PRECIOUS: cache/gis/%.zip
 cache/gis/%.zip:
 	curl --create-dirs --output $@ \
-		http://download.massgis.digital.mass.gov/cache/state/$(notdir $@)
+		http://download.massgis.digital.mass.gov/shapefiles/state/$(notdir $@)
 
 # TODO: Generate CSV as a convenience
 dist/ma_legislators.json:
