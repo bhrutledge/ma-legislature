@@ -1,7 +1,7 @@
 <html>
 
 <head>
-  <title>Commitments to the Act On Mass Transparency Campaign</title>
+  <title>Massachusetts Legislature</title>
   <base target="_blank">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
@@ -11,13 +11,12 @@
 
   <style>
     :root {
-      --join-color: rgba(0, 0, 0, 0.2);
-      --join-color--active: rgba(0, 0, 0, 0.4);
-      --committed-color: rgba(90, 186, 161, 0.6);
-      --committed-color--active: rgba(90, 186, 161, 0.9);
-      --vote-Y-color: rgba(250, 162, 0, 0.5);
-      --vote-Y-color--active: rgba(250, 162, 0, 0.9);
-      --vote-N-color: rgba(128, 128, 128, 1.0);
+      --color--district: rgba(0, 0, 0, 0.2);
+      --color--district--active: rgba(0, 0, 0, 0.4);
+      --color--Democrat: rgba(0, 0, 255, 0.5);
+      --color--Democrat--active: rgba(0, 0, 255, 0.9);
+      --color--Republican: rgba(255, 0, 0, 0.5);
+      --color--Republican--active: rgba(255, 0, 0, 0.9);
     }
 
     body {
@@ -58,7 +57,7 @@
     }
 
     .legend__item::before {
-      background: var(--join-color);
+      background: var(--color--district);
       border-radius: 2px;
       content: '';
       display: block;
@@ -67,18 +66,18 @@
       width: 1rem;
     }
 
-    .legend__item--committed::before {
-      background: var(--committed-color);
+    .legend__item--Democrat::before {
+      background: var(--color--Democrat);
     }
 
-    .legend__item--voted::before {
-      background: var(--vote-Y-color);
+    .legend__item--Republican::before {
+      background: var(--color--Republican);
     }
 
     .district {
-      fill: var(--join-color);
+      fill: var(--color--district);
       fill-opacity: 1;
-      stroke: var(--join-color);
+      stroke: var(--color--district);
       stroke-width: 1;
     }
 
@@ -87,23 +86,23 @@
     }
 
     .district--active {
-      fill: var(--join-color--active);
+      fill: var(--color--district--active);
     }
 
-    .district--committed {
-      fill: var(--committed-color);
+    .district--Democrat {
+      fill: var(--color--Democrat);
     }
 
-    .district--committed.district--active {
-      fill: var(--committed-color--active);
+    .district--Democrat.district--active {
+      fill: var(--color--Democrat--active);
     }
 
-    .district--voted {
-      fill: var(--vote-Y-color);
+    .district--Republican {
+      fill: var(--color--Republican);
     }
 
-    .district--voted.district--active {
-      fill: var(--vote-Y-color--active);
+    .district--Republican.district--active {
+      fill: var(--color--Republican--active);
     }
 
     .leaflet-control-search .search-input {
@@ -135,28 +134,6 @@
       vertical-align: baseline;
       white-space: nowrap;
     }
-
-    .commitment {
-      color: var(--committed-color--active);
-      font-weight: bold;
-      padding-right: 0.25rem;
-    }
-
-    .vote {
-      color: var(--vote-N-color);
-      font-weight: bold;
-      padding-right: 0.25rem;
-    }
-
-    .vote--Y {
-      color: var(--vote-Y-color--active);
-    }
-
-    .vote-details {
-      color: var(--vote-N-color);
-      font-size: 0.75rem;
-      font-style: oblique;
-    }
   </style>
 </head>
 
@@ -168,126 +145,38 @@
     crossorigin=""></script>
   <script src="https://unpkg.com/leaflet-providers@1.11.0/leaflet-providers.js"></script>
   <script src="https://unpkg.com/leaflet-search@2.9.9/dist/leaflet-search.min.js"></script>
-  <script src="https://unpkg.com/papaparse@5.3.0/papaparse.min.js"></script>
 
   <script>
-    /* global L, Papa */
+    /* global L */
 
-    /* Load the supporter data and house district boundaries */
+    /* Load the house district boundaries */
 
     Promise.all([
-      fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4l7bRcBIgwsEPGM_s9zF9csIeTgE2No_4tA6MuDCBUbfmWY_e9mAfzPpCJTsIK_hUzOyJ8CmdGMsX/pub?gid=641305740&single=true&output=csv')
-        .then((response) => response.text())
-        .then((csv) => {
-          const parsed = Papa.parse(csv, { header: true, dynamicTyping: true });
-          return Promise.resolve(parsed.data);
-        }),
-      fetch('https://raw.githubusercontent.com/bhrutledge/ma-legislature/main/dist/ma_house.geojson')
+      fetch('/dist/ma_house.geojson')
         .then((response) => response.json()),
     ])
-      .then(([supporters, houseFeatures]) => {
-        const supportersByDistrict = supporters.reduce((acc, cur) => {
-          acc[cur.district] = cur;
-          return acc;
-        }, {});
-
+      .then(([houseFeatures]) => {
         function repProperties(feature) {
-          const supporter = supportersByDistrict[feature.properties.district];
-          return supporter;
-          /* TODO: Join with feature properties when contact info for "elect" reps is added
-          // Supporter info from Sheet may be incomplete, so only prefer it to
-          // replace outgoing incumbents
-          return supporter && supporter.elect
-            ? { ...feature.properties, ...supporter } : { ...supporter, ...feature.properties };
-          */
+          return feature.properties;
         }
 
         /* Templates for map elements */
 
         const districtLegend = () => /* html */`
-          <div class="legend__item legend__item--committed">
-            Committed to Vote
+          <div class="legend__item legend__item--Democrat">
+            Democrat
           </div>
-          <div class="legend__item legend__item--voted">
-            Voted "Yes" in 2019
+          <div class="legend__item legend__item--Republican">
+            Republican
           </div>
-          <div class="legend__item legend__item--join">
-            Join District Team
+          <div class="legend__item legend__item">
+            Other
           </div>
         `;
 
         const districtStyle = (rep) => ({
-          // Expecting "committed", "voted", or "join"
-          className: `district district--${rep.color}`,
+          className: `district district--${rep.party}`,
         });
-
-        const commitmentIcon = (commitment) => (commitment ? '✓' : '');
-
-        const repCommitments = (rep) => (rep.commitments ? /* html */`
-          <p>
-            <table>
-              <tr><th colspan="3">Committed to vote for:</strong></tr>
-              <tr>
-                <td class="commitment">${commitmentIcon(rep.committee_votes)}</td>
-                <td>1.</td>
-                <td>Committee votes made public</td>
-              </tr>
-              <tr>
-                <td class="commitment">${commitmentIcon(rep.public_bills)}</td>
-                <td>2.</td>
-                <td>Bills made public for 72 hours</td>
-              </tr>
-              <tr>
-                <td class="commitment">${commitmentIcon(rep.roll_call)}</td>
-                <td>3.</td>
-                <td>Lower threshold for public roll call</td>
-              </tr>
-            </table>
-          </p>
-        ` : '');
-
-        const voteDetails = (rep) => {
-          const votes = [rep.committee_votes_2019, rep.public_bills_2019];
-          const details = [];
-
-          if (votes.includes('NA')) {
-            details.push('(NA = Not a representative in 2019)');
-          }
-          if (votes.includes('X')) {
-            details.push('(X = Not present for vote)');
-          }
-
-          return details.length ? /* html */`
-            <div class="vote-details">${details.join('<br>')}</div>
-          ` : '';
-        };
-
-        const repVotes = (rep) => /* html */`
-          <p>
-            <table>
-              <tr><th colspan="2">How they voted in 2019:</strong></tr>
-              <tr>
-                <td class="vote vote--${rep.committee_votes_2019}">${rep.committee_votes_2019}</td>
-                <td>Committee votes made public</td>
-              </tr>
-              <tr>
-                <td class="vote vote--${rep.public_bills_2019}">${rep.public_bills_2019}</td>
-                <td>Bills made public for 72 hours</td>
-              </tr>
-              <tr>
-                <td class="vote-details" colspan="2">${voteDetails(rep)}</td>
-              </tr>
-            </table>
-          </p>
-        `;
-
-        const callToAction = (rep) => /* html */`
-          <a href="https://actonmass.org/the-campaign/?your_state_representative=${rep.first_name} ${rep.last_name}#join-your-district-team"
-            target="_parent"
-          >
-            <strong>Join ${rep.commitments ? 'the Campaign' : 'District Team'}</strong>
-          </a>
-        `;
 
         const districtPopup = (rep) => `
           <p>
@@ -295,12 +184,7 @@
             ${rep.url ? `(<a href="${rep.url}">contact</a>)` : ''}
             <br />${rep.party ? `${rep.party},` : ''}
             ${rep.district}
-            ${rep.elect ? '(Elect)' : ''}
           </p>
-
-          ${repCommitments(rep)}
-          ${repVotes(rep)}
-          ${callToAction(rep)}
         `;
 
         const onPopup = (e) => {
