@@ -149,7 +149,7 @@
   <script>
     /* global L */
 
-    /* Load the house district boundaries */
+    /* Load the legislature district boundaries */
 
     Promise.all([
       fetch('/dist/ma_house.geojson')
@@ -192,7 +192,7 @@
           e.target.getElement().classList.toggle('district--active', active);
         };
 
-        /* Build the map */
+        /* Build the district layers */
 
         const districtLayer = (features) => L.geoJson(features, {
           style: (feature) => districtStyle(repProperties(feature)),
@@ -210,46 +210,55 @@
           },
         });
 
-        const layers = {
-          House: districtLayer(houseFeatures),
-          Senate: districtLayer(senateFeatures),
-        };
-
-        const layerControl = L.control.layers(layers, {}, {
-          collapsed: false,
-        });
-
-        /* TODO: Make this work with multiple layers
-        const searchControl = new L.Control.Search({
-          layer: houseLayer,
+        const districtSearch = (layer) => new L.Control.Search({
+          layer,
           propertyName: 'index',
           initial: false,
           marker: false,
-          textPlaceholder: 'Search reps and districts',
+          textPlaceholder: 'Search legislators and districts',
           moveToLocation(latlng, title, map) {
             map.fitBounds(latlng.layer.getBounds());
             latlng.layer.openPopup();
           },
         });
-        */
 
+        const layers = {
+          House: districtLayer(houseFeatures),
+          Senate: districtLayer(senateFeatures),
+        };
+    
+        const searchControls = {
+          House: districtSearch(layers.House),
+          Senate: districtSearch(layers.Senate),
+        };
+
+        /* Build the map */
+    
+        const map = L.map('map').addLayer(L.tileLayer.provider('CartoDB.Positron'));
+
+        Object.keys(layers).forEach((chamber) => {
+          layers[chamber]
+            .on('add', () => searchControls[chamber].addTo(map))
+            .on('remove', () => searchControls[chamber].remove());
+        });
+
+        map.addLayer(layers.House)
+          .fitBounds(layers.House.getBounds())
+          // Avoid accidental excessive zoom out
+          .setMinZoom(map.getZoom());
+
+        const layerControl = L.control.layers(layers, {}, {
+          collapsed: false,
+        });
+        layerControl.addTo(map);
+    
         const legendControl = L.control({ position: 'topright' });
         legendControl.onAdd = () => {
           const div = L.DomUtil.create('div', 'legend');
           div.innerHTML = districtLegend();
           return div;
         };
-
-        const map = L.map('map')
-          .addLayer(L.tileLayer.provider('CartoDB.Positron'))
-          .addLayer(layers.House)
-          .addControl(layerControl)
-          // .addControl(searchControl)
-          .addControl(legendControl)
-          .fitBounds(layers.House.getBounds());
-
-        // Avoid accidental excessive zoom out
-        map.setMinZoom(map.getZoom());
+        legendControl.addTo(map);
       });
   </script>
 </body>
