@@ -154,11 +154,11 @@
     Promise.all([
       fetch('/dist/ma_house.geojson')
         .then((response) => response.json()),
+      fetch('/dist/ma_senate.geojson')
+        .then((response) => response.json()),
     ])
-      .then(([houseFeatures]) => {
-        function repProperties(feature) {
-          return feature.properties;
-        }
+      .then(([houseFeatures, senateFeatures]) => {
+        const repProperties = (feature) => feature.properties;
 
         /* Templates for map elements */
 
@@ -182,8 +182,8 @@
           <p>
             <strong>${rep.first_name} ${rep.last_name}</strong>
             ${rep.url ? `(<a href="${rep.url}">contact</a>)` : ''}
-            <br />${rep.party ? `${rep.party},` : ''}
-            ${rep.district}
+            <br />${rep.party}
+            <br />${rep.district}
           </p>
         `;
 
@@ -194,7 +194,7 @@
 
         /* Build the map */
 
-        const houseLayer = L.geoJson(houseFeatures, {
+        const districtLayer = (features) => L.geoJson(features, {
           style: (feature) => districtStyle(repProperties(feature)),
           onEachFeature: (feature, layer) => {
             const rep = repProperties(feature);
@@ -210,6 +210,16 @@
           },
         });
 
+        const layers = {
+          House: districtLayer(houseFeatures),
+          Senate: districtLayer(senateFeatures),
+        };
+
+        const layerControl = L.control.layers(layers, {}, {
+          collapsed: false,
+        });
+
+        /* TODO: Make this work with multiple layers
         const searchControl = new L.Control.Search({
           layer: houseLayer,
           propertyName: 'index',
@@ -221,6 +231,7 @@
             latlng.layer.openPopup();
           },
         });
+        */
 
         const legendControl = L.control({ position: 'topright' });
         legendControl.onAdd = () => {
@@ -231,10 +242,11 @@
 
         const map = L.map('map')
           .addLayer(L.tileLayer.provider('CartoDB.Positron'))
-          .addLayer(houseLayer)
-          .addControl(searchControl)
+          .addLayer(layers.House)
+          .addControl(layerControl)
+          // .addControl(searchControl)
           .addControl(legendControl)
-          .fitBounds(houseLayer.getBounds());
+          .fitBounds(layers.House.getBounds());
 
         // Avoid accidental excessive zoom out
         map.setMinZoom(map.getZoom());
