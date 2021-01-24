@@ -186,7 +186,7 @@
           <p>
             <strong>${rep.first_name} ${rep.last_name}</strong>
             ${rep.url ? `(<a href="${rep.url}">contact</a>)` : ''}
-            <br />${rep.party}
+            ${rep.party ? `<br />${rep.party}` : ''}
             <br />${rep.district}
           </p>
         `;

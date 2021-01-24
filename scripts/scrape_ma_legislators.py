@@ -46,9 +46,9 @@ def get_soup(url):
 
 
 CLEAN_URLS = {
-    f"{BASE_URL}/Legislators/District/4thHampden": {
+    f"{BASE_URL}/Legislators/District/19thSuffolk": {
         "chamber": "House",
-        "district": "4th Hampden",
+        "district": "19th Suffolk",
         "full_name": "Vacant",
     }
 }
