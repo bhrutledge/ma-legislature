@@ -25,11 +25,6 @@
       background: #ddd;
     }
 
-    #map {
-      height: 100%;
-      width: 100%;
-    }
-
     #map:not(.leaflet-container)::after {
       content: '…loading map…';
       display: block;
@@ -138,7 +133,16 @@
 </head>
 
 <body>
-  <div id="map"></div>
+  <!--
+    Center the map with a constrained width and a responsive 64% aspect ratio (same as Massachusetts)
+    https://css-tricks.com/aspect-ratio-boxes/
+    Temporarily(?) using `style` attribute to keep page layout separate from map styling in <style>
+  -->
+  <div style="max-width: 800px; margin: 0 auto;">
+    <div style="position: relative; overflow: hidden; padding-top: 64%;">
+      <div id="map" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"></div>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
     integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
@@ -226,14 +230,14 @@
           House: districtLayer(houseFeatures),
           Senate: districtLayer(senateFeatures),
         };
-    
+
         const searchControls = {
           House: districtSearch(layers.House),
           Senate: districtSearch(layers.Senate),
         };
 
         /* Build the map */
-    
+
         const map = L.map('map').addLayer(L.tileLayer.provider('CartoDB.Positron'));
 
         Object.keys(layers).forEach((chamber) => {
@@ -251,7 +255,7 @@
           collapsed: false,
         });
         layerControl.addTo(map);
-    
+
         const legendControl = L.control({ position: 'topright' });
         legendControl.onAdd = () => {
           const div = L.DomUtil.create('div', 'legend');
