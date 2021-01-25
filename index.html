@@ -157,9 +157,9 @@
     /* Load the legislature district boundaries */
 
     Promise.all([
-      fetch('/dist/ma_house.geojson')
+      fetch('dist/ma_house.geojson')
         .then((response) => response.json()),
-      fetch('/dist/ma_senate.geojson')
+      fetch('dist/ma_senate.geojson')
         .then((response) => response.json()),
     ])
       .then(([houseFeatures, senateFeatures]) => {
