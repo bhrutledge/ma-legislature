@@ -154,16 +154,33 @@
   <script>
     /* global L */
 
-    /* Load the legislature district boundaries */
+    /* Load the legislative district boundaries and rep data */
 
     Promise.all([
-      fetch('dist/ma_house.geojson')
-        .then((response) => response.json()),
-      fetch('dist/ma_senate.geojson')
-        .then((response) => response.json()),
+      /* The GeoJSON contains basic contact information for each rep */
+      fetch('dist/ma_house.geojson').then((response) => response.json()),
+      fetch('dist/ma_senate.geojson').then((response) => response.json()),
+      /**
+       * To add additional data about each rep/district, uncomment this `fetch`
+       * and set the URL to a JSON data source with a `district` field.
+       *
+       * For a CSV, use https://www.papaparse.com/; see an example at:
+       * https://github.com/actonmass/campaign-map/blob/main/index.html
+       */
+      // fetch('https://example.com/rep_data.json').then((response) => response.json()),
     ])
-      .then(([houseFeatures, senateFeatures]) => {
-        const repProperties = (feature) => feature.properties;
+      .then(([houseFeatures, senateFeatures, repData = []]) => {
+        /* Build a rep info object, e.g. `rep.first_name`, `rep.extra_data` */
+
+        const repDataByDistrict = repData.reduce((acc, cur) => {
+          acc[cur.district] = cur;
+          return acc;
+        }, {});
+
+        const repProperties = (feature) => {
+          const data = repDataByDistrict[feature.properties.district] || {};
+          return { ...feature.properties, ...data };
+        };
 
         /* Templates for map elements */
 
