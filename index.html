@@ -185,9 +185,9 @@
         const districtPopup = (rep) => `
           <p>
             <strong>${rep.first_name} ${rep.last_name}</strong>
-            ${rep.url ? `(<a href="${rep.url}">contact</a>)` : ''}
             ${rep.party ? `<br />${rep.party}` : ''}
             <br />${rep.district}
+            ${rep.url ? `<br /><a href="${rep.url}">Contact</a>` : ''}
           </p>
         `;
 

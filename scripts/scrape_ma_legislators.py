@@ -45,61 +45,38 @@ def get_soup(url):
     return BeautifulSoup(response.text, "lxml")
 
 
-CLEAN_URLS = {
-    f"{BASE_URL}/Legislators/District/19thSuffolk": {
-        "chamber": "House",
-        "district": "19th Suffolk",
-        "full_name": "Vacant",
-    }
-}
-
-
 def parse_chamber(soup):
     for row_soup in tqdm(soup.select("#legislatorTable tbody tr")):
-        # TODO: Rework this to be more flexible/informative about missing data
-        # e.g., "Vacant"
-        row = parse_leg_row(row_soup)
+        profile = OrderedDict()
 
-        profile_soup = get_soup(row["url"])
+        first_name = select_string(row_soup, "td:nth-of-type(3)")
+        last_name = select_string(row_soup, "td:nth-of-type(4)")
+        profile_url = BASE_URL + row_soup.select_one("td:nth-of-type(3) a")["href"]
 
-        try:
-            profile = parse_leg_profile(profile_soup)
-        except AttributeError as exc:
-            debug(f"Error parsing {row['url']}: {exc}")
-            profile = OrderedDict()
+        if first_name == "Vacant":
+            district = last_name
+            title = full_name = last_name = ""
+        else:
+            district = select_string(row_soup, "td:nth-of-type(5)")
+            profile_soup = get_soup(profile_url)
+            title_tag = profile_soup.select_one("h1 span")
+            title = title_tag.string.strip()
+            full_name = title_tag.next_sibling.string.strip()
 
-        profile.update(row)
-
-        clean_data = CLEAN_URLS.get(profile["url"], {})
-        profile.update(clean_data)
+        profile["chamber"] = select_string(soup, "h1").split()[0]
+        profile["district"] = district
+        profile["title"] = title
+        profile["full_name"] = full_name
+        profile["first_name"] = first_name
+        profile["last_name"] = last_name
+        profile["party"] = select_string(row_soup, "td:nth-of-type(6)")
+        profile["url"] = profile_url
+        profile["email"] = select_string(row_soup, "td:nth-of-type(9) a")
+        profile["phone"] = select_string(row_soup, "td:nth-of-type(8)")
+        profile["room"] = select_string(row_soup, "td:nth-of-type(7)")
+        profile["photo"] = BASE_URL + row_soup.select_one(".thumb img")["src"]
 
         yield profile
-
-
-def parse_leg_row(soup):
-    return OrderedDict(
-        [
-            ("first_name", select_string(soup, "td:nth-of-type(3)")),
-            ("last_name", select_string(soup, "td:nth-of-type(4)")),
-            ("party", select_string(soup, "td:nth-of-type(6)")),
-            ("url", BASE_URL + soup.select_one("td:nth-of-type(3) a")["href"]),
-            ("email", select_string(soup, "td:nth-of-type(9) a")),
-            ("phone", select_string(soup, "td:nth-of-type(8)")),
-            ("room", select_string(soup, "td:nth-of-type(7)")),
-            ("photo", BASE_URL + soup.select_one(".thumb img")["src"]),
-        ]
-    )
-
-
-def parse_leg_profile(soup):
-    leg_type = soup.select_one("h1 span")
-    return OrderedDict(
-        [
-            ("chamber", "Senate" if leg_type.string == "Senator" else "House"),
-            ("district", soup.select_one(".subTitle").string.split("-")[1].strip()),
-            ("full_name", leg_type.next_sibling.string.strip()),
-        ]
-    )
 
 
 def get_chamber(chamber_name):
