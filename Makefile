@@ -34,9 +34,3 @@ dist/ma_legislators.json:
 	venv/bin/python scripts/scrape_ma_legislators.py > $@
 	ls -lh $@
 	head -c 1024 $@
-
-# TODO: Add distinct clean-dist and clean-cache, via clean-%, but see:
-# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: clean
-clean:
-	rm -rf dist cache
