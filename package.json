@@ -3,6 +3,7 @@
   "version": "2021.1.0",
   "description": "Geographic data for the Massachusetts legislature",
   "dependencies": {
+    "json2csv": "^5.0.5",
     "mapshaper": "^0.5.26"
   },
   "author": "Brian H. Rutledge",

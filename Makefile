@@ -1,5 +1,5 @@
 .PHONY: all
-all: dist/ma_house.geojson dist/ma_senate.geojson
+all: dist/ma_house.geojson dist/ma_senate.geojson dist/ma_legislators.csv
 
 # Attempting to balance file size with accuracy, mostly emperically
 # 50m ~= 1/2 a city block, and 4 decimals of precision == 11.1m
@@ -28,7 +28,9 @@ cache/gis/%.zip:
 	curl --create-dirs --output $@ \
 		http://download.massgis.digital.mass.gov/shapefiles/state/$(notdir $@)
 
-# TODO: Generate CSV as a convenience
+dist/ma_legislators.csv: dist/ma_legislators.json
+	npx json2csv --input $< --output $@
+
 dist/ma_legislators.json:
 	mkdir -p dist cache
 	venv/bin/python scripts/scrape_ma_legislators.py > $@
