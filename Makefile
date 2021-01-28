@@ -1,5 +1,10 @@
+house_geojson := dist/ma_house.geojson
+senate_geojson := dist/ma_senate.geojson
+legislators_json := dist/ma_legislators.json
+legislators_csv := dist/ma_legislators.csv
+
 .PHONY: all
-all: dist/ma_house.geojson dist/ma_senate.geojson
+all: $(house_geojson) $(senate_geojson) $(legislators_json) $(legislators_csv)
 
 # Attempting to balance file size with accuracy, mostly emperically
 # 50m ~= 1/2 a city block, and 4 decimals of precision == 11.1m
@@ -8,7 +13,7 @@ all: dist/ma_house.geojson dist/ma_senate.geojson
 simplify := interval=50m
 output := precision=0.0001
 
-dist/ma_%.geojson: cache/gis/%2012_poly.shp dist/ma_legislators.json
+dist/ma_%.geojson: cache/gis/%2012_poly.shp $(legislators_json)
 	npx mapshaper -i $< \
 		-each "district = this.properties.REP_DIST || this.properties.SEN_DIST" \
 		-filter-fields district \
@@ -28,8 +33,10 @@ cache/gis/%.zip:
 	curl --create-dirs --output $@ \
 		http://download.massgis.digital.mass.gov/shapefiles/state/$(notdir $@)
 
-# TODO: Generate CSV as a convenience
-dist/ma_legislators.json:
+$(legislators_csv): $(legislators_json)
+	npx json2csv --input $< --output $@
+
+$(legislators_json):
 	mkdir -p dist cache
 	venv/bin/python scripts/scrape_ma_legislators.py > $@
 	ls -lh $@

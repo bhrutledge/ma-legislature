@@ -27,7 +27,7 @@ make -B
 This will:
 
 - Download the [House](https://docs.digital.mass.gov/dataset/massgis-data-massachusetts-house-legislative-districts) and [Senate](https://docs.digital.mass.gov/dataset/massgis-data-massachusetts-senate-legislative-districts) legislative district shapefiles from [MassGIS](https://docs.digital.mass.gov/dataset/massgis-data-layers)
-- Scrape legislator information from [malegislature.gov/Legislators](https://malegislature.gov/Legislators) and save it as [JSON](dist/ma_legislators.json)
+- Scrape legislator information from [malegislature.gov/Legislators](https://malegislature.gov/Legislators) and save it as [JSON](dist/ma_legislators.json) and [CSV](dist/ma_legislators.csv)
 - Generate GeoJSON for the [House](dist/ma_house.geojson) and [Senate](dist/ma_senate.geojson) districts with legislator information (using [mapshaper](https://github.com/mbloch/mapshaper))
 
 **NOTE**: When scraping, the HTTP requests are cached to facilitate development and avoid excessive traffic. To re-scrape the data, delete `cache/ma_legislators_requests.sqlite`.
