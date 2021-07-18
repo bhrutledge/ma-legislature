@@ -1,0 +1,24 @@
+name: Update data
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          npm install
+          python3 -m venv venv
+          venv/bin/pip install -r requirements.txt
+      - name: Update data
+        run: |
+          make -B
+      - uses: peter-evans/create-pull-request@v3
+        with:
+          branch: update-data
+          commit-message: Update data
+          title: Update data
