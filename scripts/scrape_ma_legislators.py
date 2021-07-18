@@ -5,11 +5,13 @@ TODO: Replace this with a Scrapy project.
 """
 import functools
 import json
+import logging
 import pathlib
 import sys
 import warnings
 from collections import OrderedDict
 
+import backoff
 import requests
 import requests_cache
 import urllib3
@@ -24,14 +26,14 @@ requests_cache.install_cache(str(CACHE_DIR / "ma_legislators_requests"))
 
 debug = functools.partial(print, file=sys.stderr)
 
-
-def select_string(soup, selector):
-    try:
-        return (soup.select_one(selector).string or "").strip()
-    except AttributeError:
-        return ""
+logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
 
+@backoff.on_exception(
+    backoff.expo,
+    exception=requests.exceptions.RequestException,
+    max_tries=8,
+)
 def get_soup(url):
     # debug(url)
     # HACK: Work around SSLError "unable to get local issuer certificate"
@@ -43,6 +45,13 @@ def get_soup(url):
     # debug(f"Status: {response.status_code}, Cached: {response.from_cache}")
 
     return BeautifulSoup(response.text, "lxml")
+
+
+def select_string(soup, selector):
+    try:
+        return (soup.select_one(selector).string or "").strip()
+    except AttributeError:
+        return ""
 
 
 def parse_chamber(soup):

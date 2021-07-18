@@ -3,3 +3,4 @@ lxml
 requests
 requests_cache
 tqdm
+backoff
